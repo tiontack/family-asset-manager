@@ -2,8 +2,11 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const DB_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DB_DIR, 'assets.db');
+// Render 볼륨은 /data 에 마운트됨. 환경변수 DB_PATH로 덮어쓸 수 있음
+const DB_DIR = process.env.DB_PATH
+  ? path.dirname(process.env.DB_PATH)
+  : path.join(__dirname, 'data');
+const DB_PATH = process.env.DB_PATH || path.join(DB_DIR, 'assets.db');
 
 let db;
 
