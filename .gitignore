@@ -1,0 +1,24 @@
+# 의존성
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# 빌드 결과물 (Railway에서 빌드)
+frontend/dist/
+
+# 데이터베이스 (Railway Volume으로 관리)
+backend/data/
+*.db
+*.db-shm
+*.db-wal
+
+# 환경변수
+.env
+.env.local
+.env.production
+
+# macOS
+.DS_Store
+
+# 로그
+npm-debug.log*
