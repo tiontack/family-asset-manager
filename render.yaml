@@ -1,14 +1,11 @@
 services:
-  # ── 단일 Web Service (백엔드 + 프론트엔드 통합) ──────────────
+  # ── 백엔드 Web Service ──────────────────────────────
   - type: web
-    name: family-asset-manager
+    name: family-asset-backend
     runtime: node
-    rootDir: .
-    buildCommand: >
-      pip3 install msoffcrypto-tool &&
-      cd frontend && npm install && npm run build &&
-      cd ../backend && npm install
-    startCommand: node backend/server.js
+    rootDir: backend
+    buildCommand: pip3 install msoffcrypto-tool && npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
