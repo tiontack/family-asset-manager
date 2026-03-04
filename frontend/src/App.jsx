@@ -5,7 +5,6 @@ import { DashboardPage } from './pages/DashboardPage';
 import { UploadPage } from './pages/UploadPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
-import { ForecastPage } from './pages/ForecastPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 export default function App() {
@@ -18,7 +17,6 @@ export default function App() {
             <Route path="upload" element={<UploadPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
-            <Route path="forecast" element={<ForecastPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>

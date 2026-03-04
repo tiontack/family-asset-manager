@@ -28,6 +28,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/categories',   require('./routes/categories'));
 app.use('/api/rules',        require('./routes/rules'));
 app.use('/api/analytics',    require('./routes/analytics'));
+app.use('/api/assets',       require('./routes/assets'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

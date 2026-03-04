@@ -1,171 +1,214 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { useFetch } from '../hooks/useFetch';
 import { formatAmount, formatAmountShort, formatMonth } from '../utils/format';
 import { MonthSelector } from '../components/common/MonthSelector';
 import { Loading, EmptyState } from '../components/common/Loading';
+import api from '../utils/api';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
 
-export function AnalyticsPage() {
-  const { state } = useApp();
-  const { selectedMonth } = state;
-
-  const { data: categories, loading } = useFetch('/analytics/categories', { month: selectedMonth, type: '출금' });
-  const { data: monthly } = useFetch('/analytics/monthly', { months: 12 });
-
-  const totalExpense = categories?.reduce((s, c) => s + (c.total || 0), 0) || 0;
-
-  if (loading) return <Loading />;
-
+// ─────────────────────────────────────────────────────────────────────────────
+// 커스텀 툴팁
+// ─────────────────────────────────────────────────────────────────────────────
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="page">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 className="page-title">지출 분석</h1>
-          <p className="page-subtitle">카테고리별 지출 현황 및 트렌드</p>
+    <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 10, padding: '10px 14px', fontSize: '0.85rem' }}>
+      <div style={{ color: '#94A3B8', marginBottom: 6, fontWeight: 600 }}>{formatMonth(label)}</div>
+      {payload.map(p => (
+        <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', gap: 20, color: p.color }}>
+          <span>{p.name}</span>
+          <strong>{formatAmount(p.value)}</strong>
         </div>
-        <MonthSelector />
-      </div>
-
-      {/* 카테고리별 지출 현황 */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-header">
-          <span className="card-title">카테고리별 지출 현황</span>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            총 지출: <strong style={{ color: 'var(--text-primary)' }}>{formatAmount(totalExpense)}</strong>
-          </span>
-        </div>
-
-        {categories && categories.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {categories.map(cat => {
-              const pct = totalExpense > 0 ? Math.round((cat.total / totalExpense) * 100) : 0;
-              const overBudget = cat.budget > 0 && cat.total > cat.budget;
-              return (
-                <div key={cat.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '1.1rem' }}>{cat.icon}</span>
-                      <span style={{ fontWeight: 500 }}>{cat.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cat.count}건</span>
-                      {overBudget && (
-                        <span style={{ fontSize: '0.72rem', background: '#EF444422', color: '#EF4444', padding: '1px 6px', borderRadius: 4 }}>
-                          예산 초과
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 600, color: cat.color }}>{formatAmount(cat.total)}</span>
-                      {cat.budget > 0 && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 8 }}>
-                          / {formatAmount(cat.budget)}
-                        </span>
-                      )}
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 6 }}>({pct}%)</span>
-                    </div>
-                  </div>
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width: `${Math.min(cat.budget > 0 ? (cat.total / cat.budget) * 100 : pct, 100)}%`,
-                        background: overBudget ? 'var(--accent-red)' : cat.color,
-                      }}
-                    />
-                  </div>
-                  {cat.budget > 0 && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                      예산 {cat.budget > 0 ? Math.round((cat.total / cat.budget) * 100) : 0}% 사용
-                      {cat.budget > cat.total && (
-                        <span style={{ color: 'var(--accent-green)', marginLeft: 6 }}>
-                          ({formatAmountShort(cat.budget - cat.total)} 남음)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState icon="📊" title="데이터 없음" desc="이번 달 지출 데이터가 없습니다" />
-        )}
-      </div>
-
-      {/* 월별 트렌드 */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-header">
-          <span className="card-title">월별 수입/지출 트렌드</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>최근 12개월</span>
-        </div>
-        {monthly && monthly.length > 0 ? (
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={monthly}>
-              <XAxis
-                dataKey="month"
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                tickFormatter={v => v.slice(5) + '월'}
-              />
-              <YAxis
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                tickFormatter={v => formatAmountShort(v)}
-              />
-              <Tooltip
-                formatter={v => formatAmount(v)}
-                contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8 }}
-                labelStyle={{ color: '#94A3B8' }}
-                labelFormatter={v => formatMonth(v)}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="income" name="수입" stroke="#10B981" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="expense" name="지출" stroke="#EF4444" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="savings" name="저축" stroke="#6366F1" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <EmptyState icon="📉" title="데이터 없음" desc="CSV를 업로드하면 트렌드가 표시됩니다" />
-        )}
-      </div>
-
-      {/* 카테고리별 막대차트 */}
-      {categories && categories.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">카테고리별 지출 비교</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={categories} layout="vertical" barSize={18}>
-              <XAxis
-                type="number"
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                tickFormatter={v => formatAmountShort(v)}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={80}
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-              />
-              <Tooltip
-                formatter={v => formatAmount(v)}
-                contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8 }}
-              />
-              <Bar dataKey="total" name="지출액" radius={[0, 4, 4, 0]}>
-                {categories.map((entry, i) => (
-                  <Cell key={i} fill={entry.color || '#6B7280'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      ))}
+      {payload.length >= 2 && (
+        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid #334155', color: '#CBD5E1', display: 'flex', justifyContent: 'space-between', gap: 20 }}>
+          <span>합계</span>
+          <strong>{formatAmount(payload.reduce((s, p) => s + (p.value || 0), 0))}</strong>
         </div>
       )}
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 항목 목록
+// ─────────────────────────────────────────────────────────────────────────────
+function ItemList({ items, color, emptyText }) {
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  if (items.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+        {emptyText}
+      </div>
+    );
+  }
+  return (
+    <div>
+      {items.map((item, idx) => {
+        const pct = total > 0 ? Math.round((item.amount / total) * 100) : 0;
+        return (
+          <div key={item.id ?? idx} style={{ padding: '10px 0', borderBottom: idx < items.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ fontWeight: 500, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: 8 }}>
+                {item.name}
+              </span>
+              <span style={{ fontWeight: 700, color, flexShrink: 0 }}>{formatAmount(item.amount)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 4, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.4s' }} />
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: 28, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, marginTop: 4, borderTop: '2px solid var(--border-color)' }}>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem', color }}>합계 {formatAmount(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 메인 페이지
+// ─────────────────────────────────────────────────────────────────────────────
+export function AnalyticsPage() {
+  const { state } = useApp();
+  const { selectedMonth } = state;
+
+  const [items, setItems]     = useState([]);
+  const [monthly, setMonthly] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [itemsRes, monthlyRes] = await Promise.all([
+        api.get('/assets/living-items', { params: { month: selectedMonth } }),
+        api.get('/analytics/living-monthly', { params: { months: 12 } }),
+      ]);
+      setItems(itemsRes.data || []);
+      setMonthly(monthlyRes.data || []);
+    } catch (_) {}
+    setLoading(false);
+  }, [selectedMonth]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const livingItems = items.filter(i => i.category === 'living');
+  const mgmtItems   = items.filter(i => i.category === 'management');
+  const livingTotal = livingItems.reduce((s, i) => s + i.amount, 0);
+  const mgmtTotal   = mgmtItems.reduce((s, i) => s + i.amount, 0);
+  const grandTotal  = livingTotal + mgmtTotal;
+
+  if (loading) return <Loading />;
+
+  return (
+    <div className="page">
+      {/* 헤더 */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 className="page-title">지출 분석</h1>
+          <p className="page-subtitle">{formatMonth(selectedMonth)} 생활비·관리비 내역</p>
+        </div>
+        <MonthSelector />
+      </div>
+
+      {/* ── 상단 요약 3개 카드 ─────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
+        <div className="card" style={{ borderTop: '3px solid var(--accent-blue)', textAlign: 'center', padding: '18px 16px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>이번 달 총 지출</div>
+          <div style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+            {grandTotal > 0 ? formatAmount(grandTotal) : '—'}
+          </div>
+        </div>
+        <div className="card" style={{ borderTop: '3px solid #EF4444', textAlign: 'center', padding: '18px 16px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>🛒 생활비</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#EF4444', lineHeight: 1.2 }}>
+            {livingTotal > 0 ? formatAmount(livingTotal) : '—'}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{livingItems.length}건</div>
+        </div>
+        <div className="card" style={{ borderTop: '3px solid #F59E0B', textAlign: 'center', padding: '18px 16px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>🏠 관리비</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#F59E0B', lineHeight: 1.2 }}>
+            {mgmtTotal > 0 ? formatAmount(mgmtTotal) : '—'}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{mgmtItems.length}건</div>
+        </div>
+      </div>
+
+      {/* ── 생활비·관리비 내역 ─────────────────────────────────────────── */}
+      {grandTotal === 0 ? (
+        <EmptyState icon="📊" title="내역 없음" desc={`${formatMonth(selectedMonth)} 지출 내역이 없습니다. 파일 업로드 탭에서 파일을 업로드해주세요.`} />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+          {/* 생활비 */}
+          <div className="card">
+            <div className="card-header" style={{ marginBottom: 14 }}>
+              <span className="card-title">🛒 생활비 내역</span>
+              {livingTotal > 0 && (
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#EF4444' }}>{formatAmount(livingTotal)}</span>
+              )}
+            </div>
+            <ItemList items={livingItems} color="#EF4444" emptyText="이번 달 생활비 내역이 없습니다" />
+          </div>
+
+          {/* 관리비 */}
+          <div className="card">
+            <div className="card-header" style={{ marginBottom: 14 }}>
+              <span className="card-title">🏠 관리비 내역</span>
+              {mgmtTotal > 0 && (
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F59E0B' }}>{formatAmount(mgmtTotal)}</span>
+              )}
+            </div>
+            <ItemList items={mgmtItems} color="#F59E0B" emptyText="이번 달 관리비 내역이 없습니다" />
+          </div>
+        </div>
+      )}
+
+      {/* ── 월별 비교 그래프 ───────────────────────────────────────────── */}
+      <div className="card">
+        <div className="card-header" style={{ marginBottom: 20 }}>
+          <span className="card-title">📊 월별 지출 비교</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>최근 12개월</span>
+        </div>
+        {monthly.length > 0 ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={monthly} barGap={4} barCategoryGap="32%">
+              <XAxis
+                dataKey="month"
+                stroke="#64748B"
+                tick={{ fontSize: 11 }}
+                tickFormatter={v => v.slice(2).replace('-', '/')}
+              />
+              <YAxis
+                stroke="#64748B"
+                tick={{ fontSize: 11 }}
+                tickFormatter={v => formatAmountShort(v)}
+                width={55}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+              <Bar dataKey="living" name="생활비" radius={[3, 3, 0, 0]}>
+                {monthly.map((entry, i) => (
+                  <Cell key={i} fill={entry.month === selectedMonth ? '#EF4444' : '#EF444455'} />
+                ))}
+              </Bar>
+              <Bar dataKey="management" name="관리비" radius={[3, 3, 0, 0]}>
+                {monthly.map((entry, i) => (
+                  <Cell key={i} fill={entry.month === selectedMonth ? '#F59E0B' : '#F59E0B55'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyState icon="📉" title="데이터 없음" desc="파일 업로드 후 월별 비교 그래프가 표시됩니다" />
+        )}
+      </div>
+    </div>
+  );
+}

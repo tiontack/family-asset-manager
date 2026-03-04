@@ -2,10 +2,9 @@ import { NavLink, Outlet } from 'react-router-dom';
 
 const navItems = [
   { to: '/',             icon: '📊', label: '대시보드' },
-  { to: '/upload',       icon: '📁', label: 'CSV 업로드' },
+  { to: '/upload',       icon: '📤', label: '파일 업로드' },
   { to: '/analytics',    icon: '📈', label: '지출 분석' },
   { to: '/transactions', icon: '📋', label: '거래 내역' },
-  { to: '/forecast',     icon: '🔮', label: '자산 예측' },
   { to: '/settings',     icon: '⚙️',  label: '설정' },
 ];
 

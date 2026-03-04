@@ -214,6 +214,27 @@ router.get('/forecast', (req, res) => {
   });
 });
 
+// GET /api/analytics/living-monthly?months=12
+// living_items 기반 월별 생활비/관리비 집계
+router.get('/living-monthly', (req, res) => {
+  const db = getDb();
+  const { months = 12 } = req.query;
+
+  const data = db.prepare(`
+    SELECT
+      month,
+      SUM(CASE WHEN category = 'living'     THEN amount ELSE 0 END) AS living,
+      SUM(CASE WHEN category = 'management' THEN amount ELSE 0 END) AS management,
+      SUM(amount) AS total
+    FROM living_items
+    GROUP BY month
+    ORDER BY month DESC
+    LIMIT ?
+  `).all(parseInt(months));
+
+  res.json(data.reverse());
+});
+
 // GET /api/analytics/trend?months=12 - 카테고리별 트렌드
 router.get('/trend', (req, res) => {
   const db = getDb();
