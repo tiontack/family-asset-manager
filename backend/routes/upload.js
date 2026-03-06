@@ -67,7 +67,7 @@ router.post('/', upload.single('file'), async (req, res) => {
     } else if (ext === 'xlsx') {
       // 토스뱅크 XLSX 복호화 + 파싱
       fileType = 'toss-xlsx';
-      const txs = decryptAndParseXlsx(buffer, password);
+      const txs = await decryptAndParseXlsx(buffer, password);
       if (txs.length === 0) return res.status(400).json({ error: 'XLSX에서 거래내역을 찾을 수 없습니다' });
 
       normalized = txs.map(t => ({
