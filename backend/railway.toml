@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm install"
+buildCommand = "pip3 install msoffcrypto-tool && npm install"
 
 [deploy]
 startCommand = "node server.js"
