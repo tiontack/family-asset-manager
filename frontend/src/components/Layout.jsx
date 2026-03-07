@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
-const navItems = [
+const familyNavItems = [
   { to: '/',             icon: '📊', label: '대시보드' },
   { to: '/upload',       icon: '📤', label: '파일 업로드' },
   { to: '/analytics',    icon: '📈', label: '지출 분석' },
@@ -22,8 +22,8 @@ export function Layout() {
 
         <nav className="sidebar-nav">
           <div className="nav-section">
-            <div className="nav-section-label">메뉴</div>
-            {navItems.map(item => (
+            <div className="nav-section-label">공동 자산</div>
+            {familyNavItems.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -34,6 +34,23 @@ export function Layout() {
                 {item.label}
               </NavLink>
             ))}
+          </div>
+
+          <div className="nav-section" style={{ marginTop: 16 }}>
+            <div className="nav-section-label">개인 자산</div>
+            <NavLink
+              to="/personal"
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              style={({ isActive }) => isActive ? {} : { color: 'var(--text-muted)' }}
+            >
+              <span className="nav-icon">👤</span>
+              Sean
+              <span style={{
+                marginLeft: 'auto', fontSize: '0.65rem', padding: '2px 6px',
+                background: 'var(--accent-purple)22', color: 'var(--accent-purple)',
+                borderRadius: 6, fontWeight: 700,
+              }}>🔒</span>
+            </NavLink>
           </div>
         </nav>
       </aside>

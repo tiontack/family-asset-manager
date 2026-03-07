@@ -114,6 +114,59 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_living_items_month ON living_items(month);
     CREATE INDEX IF NOT EXISTS idx_living_items_category ON living_items(category);
+
+    -- ── Sean 개인 자산 테이블 ────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS personal_realestate (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      value INTEGER NOT NULL DEFAULT 0,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime')),
+      updated_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS personal_savings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      monthly_amount INTEGER NOT NULL DEFAULT 0,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime')),
+      updated_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS personal_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      time TEXT DEFAULT '',
+      type TEXT NOT NULL,
+      merchant TEXT DEFAULT '',
+      amount INTEGER NOT NULL DEFAULT 0,
+      balance INTEGER DEFAULT 0,
+      memo TEXT DEFAULT '',
+      category_id INTEGER,
+      month TEXT NOT NULL,
+      source_file TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime')),
+      FOREIGN KEY (category_id) REFERENCES categories(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS personal_living_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL CHECK(category IN ('living','management')),
+      name TEXT NOT NULL,
+      amount INTEGER NOT NULL DEFAULT 0,
+      month TEXT NOT NULL,
+      date TEXT NOT NULL DEFAULT '',
+      is_recurring INTEGER NOT NULL DEFAULT 0,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime')),
+      updated_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_personal_tx_month ON personal_transactions(month);
+    CREATE INDEX IF NOT EXISTS idx_personal_li_month ON personal_living_items(month);
   `);
 
   // ── 스키마 마이그레이션 ──────────────────────────────────────────────────
