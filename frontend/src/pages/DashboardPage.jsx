@@ -26,8 +26,13 @@ function calcPaidMonths(startYM, endYM, refMonth) {
 // 메인 페이지
 // ─────────────────────────────────────────────────────────────────────────────
 export function DashboardPage() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { selectedMonth } = state;
+
+  // 대시보드 진입 시 항상 현재 월로 리셋
+  useEffect(() => {
+    dispatch({ type: 'SET_MONTH', payload: getCurrentMonth() });
+  }, [dispatch]);
 
   const [realestate, setRealestate] = useState([]);
   const [savings, setSavings] = useState([]);

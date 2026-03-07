@@ -33,11 +33,22 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 항목 목록
+// 항목 목록 (같은 이름 묶어서 표시)
 // ─────────────────────────────────────────────────────────────────────────────
 function ItemList({ items, color, emptyText }) {
-  const total = items.reduce((s, i) => s + i.amount, 0);
-  if (items.length === 0) {
+  // 같은 이름의 항목을 묶어서 합산
+  const grouped = Object.values(
+    items.reduce((acc, item) => {
+      if (!acc[item.name]) acc[item.name] = { name: item.name, amount: 0, count: 0 };
+      acc[item.name].amount += item.amount;
+      acc[item.name].count += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.amount - a.amount);
+
+  const total = grouped.reduce((s, i) => s + i.amount, 0);
+
+  if (grouped.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
         {emptyText}
@@ -46,13 +57,18 @@ function ItemList({ items, color, emptyText }) {
   }
   return (
     <div>
-      {items.map((item, idx) => {
+      {grouped.map((item, idx) => {
         const pct = total > 0 ? Math.round((item.amount / total) * 100) : 0;
         return (
-          <div key={item.id ?? idx} style={{ padding: '10px 0', borderBottom: idx < items.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+          <div key={item.name} style={{ padding: '10px 0', borderBottom: idx < grouped.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontWeight: 500, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: 8 }}>
                 {item.name}
+                {item.count > 1 && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginLeft: 5 }}>
+                    {item.count}건
+                  </span>
+                )}
               </span>
               <span style={{ fontWeight: 700, color, flexShrink: 0 }}>{formatAmount(item.amount)}</span>
             </div>
@@ -79,22 +95,19 @@ export function AnalyticsPage() {
   const { state } = useApp();
   const { selectedMonth } = state;
 
-  const [items, setItems]             = useState([]);
-  const [monthly, setMonthly]         = useState([]);
-  const [recurring, setRecurring]     = useState([]);
-  const [loading, setLoading]         = useState(true);
+  const [items, setItems]     = useState([]);
+  const [monthly, setMonthly] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [itemsRes, monthlyRes, recurringRes] = await Promise.all([
+      const [itemsRes, monthlyRes] = await Promise.all([
         api.get('/assets/living-items', { params: { month: selectedMonth } }),
         api.get('/analytics/living-monthly', { params: { months: 12 } }),
-        api.get('/analytics/recurring-items'),
       ]);
       setItems(itemsRes.data || []);
       setMonthly(monthlyRes.data || []);
-      setRecurring(recurringRes.data || []);
     } catch (_) {}
     setLoading(false);
   }, [selectedMonth]);
@@ -143,56 +156,6 @@ export function AnalyticsPage() {
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{mgmtItems.length}건</div>
         </div>
       </div>
-
-      {/* ── 매월 반복 고정지출 ─────────────────────────────────────────── */}
-      {recurring.length > 0 && (
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-header" style={{ marginBottom: 16 }}>
-            <span className="card-title">🔁 매월 반복 항목</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>최근 6개월 기준 2회 이상 등장</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-            {recurring.map((item, idx) => {
-              const catColor = item.category === 'management' ? '#F59E0B' : '#EF4444';
-              const catLabel = item.category === 'management' ? '관리비' : '생활비';
-              return (
-                <div key={idx} style={{
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  borderLeft: `3px solid ${catColor}`,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: '0.78rem', color: catColor, fontWeight: 600 }}>{catLabel}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.months_count}개월</span>
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: 4,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.name}
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: catColor }}>
-                    {formatAmount(item.avg_amount)}
-                    {item.min_amount !== item.max_amount && (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
-                        ({formatAmount(item.min_amount)}~{formatAmount(item.max_amount)})
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-color)',
-            display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              예상 월 고정지출
-            </span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {formatAmount(recurring.reduce((s, i) => s + i.avg_amount, 0))}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* ── 생활비·관리비 내역 ─────────────────────────────────────────── */}
       {grandTotal === 0 ? (
