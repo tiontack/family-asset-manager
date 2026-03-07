@@ -8,6 +8,7 @@ const { getDb } = require('../database');
 const { classifyBatch } = require('../utils/classifier');
 const { decryptWooriHtml, parseWooriTransactions } = require('../utils/wooriDecrypt');
 const { decryptAndParseXlsx } = require('../utils/xlsxDecrypt');
+const { parseKbPdf } = require('../utils/kbPdfParser');
 
 // ── 부동산 ───────────────────────────────────────────────────────────────────
 router.get('/realestate', (req, res) => {
@@ -119,7 +120,7 @@ const upload = multer({
     const name = Buffer.from(file.originalname, 'latin1').toString('utf8');
     file.originalname = name;
     const ext = name.split('.').pop().toLowerCase();
-    if (!['csv', 'xlsx', 'html', 'htm'].includes(ext)) return cb(new Error('CSV, XLSX, HTML 파일만 가능합니다'));
+    if (!['csv', 'xlsx', 'html', 'htm', 'pdf'].includes(ext)) return cb(new Error('CSV, XLSX, HTML, PDF 파일만 가능합니다'));
     cb(null, true);
   },
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -136,7 +137,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     let normalized = [];
     let fileType = '';
 
-    if (ext === 'html' || ext === 'htm') {
+    if (ext === 'pdf') {
+      fileType = 'kb_pdf';
+      const txs = await parseKbPdf(buffer, password);
+      if (txs.length === 0) return res.status(400).json({ error: 'PDF에서 거래내역을 찾을 수 없습니다. 비밀번호를 확인해주세요.' });
+      normalized = txs.map(t => ({
+        date: t.date, time: t.time, type: t.type, merchant: t.merchant,
+        amount: t.amount, balance: t.balance, memo: t.memo, month: t.month, livingCategory: t.livingCategory,
+      }));
+    } else if (ext === 'html' || ext === 'htm') {
       fileType = 'woori';
       const decryptedHtml = decryptWooriHtml(buffer, password);
       const txs = parseWooriTransactions(decryptedHtml);

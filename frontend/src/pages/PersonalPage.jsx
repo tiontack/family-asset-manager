@@ -314,12 +314,12 @@ function UploadModal({ onClose, onDone }) {
 
   return (
     <Modal title="📤 파일 업로드" onClose={onClose}>
-      <Field label="파일 선택 (CSV / XLSX / HTML)">
-        <input type="file" accept=".csv,.xlsx,.html,.htm" onChange={e => setFile(e.target.files[0])}
+      <Field label="파일 선택 (CSV / XLSX / HTML / PDF)">
+        <input type="file" accept=".csv,.xlsx,.html,.htm,.pdf" onChange={e => setFile(e.target.files[0])}
           style={{ width: '100%', color: 'var(--text-primary)' }} />
       </Field>
-      <Field label="비밀번호 (XLSX 암호화 파일용)">
-        <Input value={password} onChange={e => setPassword(e.target.value)} />
+      <Field label="비밀번호 (XLSX·PDF 암호화 파일용)">
+        <Input value={password} onChange={e => setPassword(e.target.value)} placeholder="암호화된 파일의 비밀번호" />
       </Field>
       {error && <p style={{ color: '#EF4444', fontSize: '0.85rem', margin: '0 0 12px' }}>{error}</p>}
       {result && (
