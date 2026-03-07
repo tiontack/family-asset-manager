@@ -116,6 +116,46 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_living_items_category ON living_items(category);
   `);
 
+  // ── 스키마 마이그레이션 ──────────────────────────────────────────────────
+  // living_items.date 컬럼 추가 (기존 DB 호환)
+  const liCols = db.prepare("PRAGMA table_info(living_items)").all().map(c => c.name);
+  if (!liCols.includes('date')) {
+    db.exec(`ALTER TABLE living_items ADD COLUMN date TEXT NOT NULL DEFAULT ''`);
+
+    // 기존 행 → transactions 에서 날짜 역산 (같은 merchant+amount+month 중 MIN date)
+    db.exec(`
+      UPDATE living_items
+      SET date = COALESCE(
+        (SELECT MIN(t.date) FROM transactions t
+          WHERE t.merchant = living_items.name
+            AND t.amount   = living_items.amount
+            AND t.month    = living_items.month
+            AND t.type     = '출금'),
+        substr(living_items.month, 1, 7) || '-01'
+      )
+      WHERE date = ''
+    `);
+
+    // 중복 dedup 버그로 누락됐던 transactions → living_items 에 보충 삽입
+    db.exec(`
+      INSERT INTO living_items (category, name, amount, month, date, is_recurring, note)
+      SELECT
+        CASE WHEN t.source_file LIKE '%.html' OR t.source_file LIKE '%.htm'
+             THEN 'management' ELSE 'living' END,
+        t.merchant, t.amount, t.month, t.date, 0, ''
+      FROM transactions t
+      WHERE t.type = '출금'
+        AND NOT EXISTS (
+          SELECT 1 FROM living_items li
+          WHERE li.name   = t.merchant
+            AND li.amount = t.amount
+            AND li.date   = t.date
+        )
+    `);
+
+    console.log('✅ living_items.date 마이그레이션 완료');
+  }
+
   seedDefaultData();
 }
 

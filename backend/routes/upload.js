@@ -143,8 +143,8 @@ router.post('/', upload.single('file'), async (req, res) => {
       VALUES (?,?,?,?,?,?,?,?,?,?)
     `);
     const insertLiving = db.prepare(`
-      INSERT INTO living_items (category, name, amount, month, is_recurring, note)
-      VALUES (?,?,?,?,0,'')
+      INSERT INTO living_items (category, name, amount, month, date, is_recurring, note)
+      VALUES (?,?,?,?,?,0,'')
     `);
 
     let txInserted = 0, txSkipped = 0;
@@ -171,16 +171,16 @@ router.post('/', upload.single('file'), async (req, res) => {
           txSkipped++;
         }
 
-        // ── living_items: 출금만, 중복 체크: 카테고리+이름+금액+월 ──
+        // ── living_items: 출금만, 중복 체크: 이름+금액+날짜 (날짜 기준 → 같은 날 같은 금액만 중복 처리) ──
         if (tx.type === '출금') {
           const liExists = db.prepare(`
             SELECT id FROM living_items
-            WHERE category=? AND name=? AND amount=? AND month=?
+            WHERE name=? AND amount=? AND date=?
             LIMIT 1
-          `).get(tx.livingCategory, tx.merchant, tx.amount, tx.month);
+          `).get(tx.merchant, tx.amount, tx.date);
 
           if (!liExists) {
-            insertLiving.run(tx.livingCategory, tx.merchant, tx.amount, tx.month);
+            insertLiving.run(tx.livingCategory, tx.merchant, tx.amount, tx.month, tx.date);
             liInserted++;
           } else {
             liSkipped++;
