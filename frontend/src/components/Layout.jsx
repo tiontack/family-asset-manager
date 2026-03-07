@@ -12,13 +12,15 @@ export function Layout() {
   return (
     <div className="app-layout">
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-title">
-            <span>💑</span>
-            <span>우리 가족 자산</span>
+        <NavLink to="/" end style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+          <div className="sidebar-logo" style={{ cursor: 'pointer' }}>
+            <div className="sidebar-logo-title">
+              <span>💑</span>
+              <span>우리 가족 자산</span>
+            </div>
+            <div className="sidebar-logo-sub">부부 공동 자산 관리</div>
           </div>
-          <div className="sidebar-logo-sub">부부 공동 자산 관리</div>
-        </div>
+        </NavLink>
 
         <nav className="sidebar-nav">
           <div className="nav-section">
