@@ -141,7 +141,7 @@ export function DashboardPage() {
 
       {/* ══════════════════════ 생활비 섹션 ══════════════════════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <SectionHeader icon="🧾" title="생활비" total={livingExp + mgmtExp} color="var(--accent-red)" inline />
+        <SectionHeader icon="🧾" title="월 지출" total={livingExp + mgmtExp} color="var(--accent-red)" inline />
         <MonthSelector />
       </div>
 

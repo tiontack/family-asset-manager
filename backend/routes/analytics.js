@@ -255,4 +255,25 @@ router.get('/trend', (req, res) => {
   res.json(data);
 });
 
+// GET /api/analytics/recurring-items
+// 최근 6개월 중 2개월 이상 등장한 항목 (매월 반복 고정지출)
+router.get('/recurring-items', (req, res) => {
+  const db = getDb();
+  const data = db.prepare(`
+    SELECT
+      category,
+      name,
+      COUNT(DISTINCT month) AS months_count,
+      CAST(ROUND(AVG(amount)) AS INTEGER) AS avg_amount,
+      MIN(amount) AS min_amount,
+      MAX(amount) AS max_amount
+    FROM living_items
+    WHERE month >= strftime('%Y-%m', date('now', '-6 months'))
+    GROUP BY category, name
+    HAVING months_count >= 2
+    ORDER BY months_count DESC, avg_amount DESC
+  `).all();
+  res.json(data);
+});
+
 module.exports = router;
