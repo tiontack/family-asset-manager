@@ -95,19 +95,22 @@ export function AnalyticsPage() {
   const { state } = useApp();
   const { selectedMonth } = state;
 
-  const [items, setItems]     = useState([]);
-  const [monthly, setMonthly] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems]         = useState([]);
+  const [monthly, setMonthly]     = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading]     = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [itemsRes, monthlyRes] = await Promise.all([
+      const [itemsRes, monthlyRes, catRes] = await Promise.all([
         api.get('/assets/living-items', { params: { month: selectedMonth } }),
         api.get('/analytics/living-monthly', { params: { months: 12 } }),
+        api.get('/analytics/categories', { params: { month: selectedMonth, type: '출금' } }),
       ]);
       setItems(itemsRes.data || []);
       setMonthly(monthlyRes.data || []);
+      setCategories(catRes.data || []);
     } catch (_) {}
     setLoading(false);
   }, [selectedMonth]);
@@ -156,6 +159,53 @@ export function AnalyticsPage() {
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{mgmtItems.length}건</div>
         </div>
       </div>
+
+      {/* ── 카테고리별 지출 ─────────────────────────────────────────────── */}
+      {categories.length > 0 && (
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header" style={{ marginBottom: 16 }}>
+            <span className="card-title">🏷️ 카테고리별 지출</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatMonth(selectedMonth)} · 출금 {categories.reduce((s, c) => s + (c.count || 0), 0)}건</span>
+          </div>
+          <div>
+            {categories.map((cat, idx) => (
+              <div key={cat.id ?? idx} style={{ padding: '10px 0', borderBottom: idx < categories.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{cat.icon || '📦'}</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {cat.name || '미분류'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                      {cat.count}건
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{cat.percentage ?? 0}%</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: cat.color || 'var(--text-primary)', minWidth: 80, textAlign: 'right' }}>
+                      {formatAmount(cat.total)}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${cat.percentage ?? 0}%`,
+                    background: cat.color || 'var(--accent-blue)',
+                    borderRadius: 4,
+                    transition: 'width 0.5s',
+                  }} />
+                </div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, marginTop: 4, borderTop: '2px solid var(--border-color)' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                합계 {formatAmount(categories.reduce((s, c) => s + (c.total || 0), 0))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 생활비·관리비 내역 ─────────────────────────────────────────── */}
       {grandTotal === 0 ? (
