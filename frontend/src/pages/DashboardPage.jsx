@@ -99,6 +99,11 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* 월 선택 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <MonthSelector />
+      </div>
+
       {/* ══════════════════════ 총 자산 ══════════════════════ */}
       <SectionHeader icon="🏦" title="총 자산" total={totalAssets} color="var(--accent-blue)" />
       <div className="grid-2" style={{ marginBottom: 36 }}>
@@ -145,9 +150,8 @@ export function DashboardPage() {
       </div>
 
       {/* ══════════════════════ 생활비 섹션 ══════════════════════ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
         <SectionHeader icon="🧾" title="월 지출" total={livingExp + mgmtExp} color="var(--accent-red)" inline />
-        <MonthSelector />
       </div>
 
       {/* 요약 카드 2개 */}
